@@ -8,3 +8,16 @@ Cities are taken from https://simplemaps.com/data/world-cities - basic dataset
 
 import faker
 import json
+
+
+def read_shortlist():
+    with open('shortlist.json', 'r') as f:
+        shortlist = json.load(f)
+    return shortlist
+
+
+def pick_city(n=0):
+    shortlist = read_shortlist()
+    city = shortlist[n]
+    return city['city_ascii'], city['country']
+
