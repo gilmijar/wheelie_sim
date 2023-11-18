@@ -3,16 +3,46 @@ from hypothesis import given, example, strategies as strats
 import customers
 
 cities = [
-    {'country': 'Fakeland', 'city_ascii': 'Faketown'},
-    {'country': 'Fakeland', 'city_ascii': 'Imaginaria'},
-    {'country': 'Fakeland', 'city_ascii': 'Dreamville'},
-    {'country': 'Fictionalonia', 'city_ascii': 'Storyville'},
-    {'country': 'Fictionalonia', 'city_ascii': 'Novelburg'},
-    {'country': 'Fictionalonia', 'city_ascii': 'Fantasia'}
+    {'country': 'Fakeland', 'city_ascii': 'Faketown', 'iso2': 'PL'},
+    {'country': 'Fakeland', 'city_ascii': 'Imaginaria', 'iso2': 'PL'},
+    {'country': 'Fakeland', 'city_ascii': 'Dreamville', 'iso2': 'PL'},
+    {'country': 'Fictionalonia', 'city_ascii': 'Storyville', 'iso2': 'SE'},
+    {'country': 'Fictionalonia', 'city_ascii': 'Novelburg', 'iso2': 'SE'},
+    {'country': 'Fictionalonia', 'city_ascii': 'Fantasia', 'iso2': 'SE'}
 ]
 
 
 class TestShortlist(unittest.TestCase):
+    def setUp(self) -> None:
+        customers.seed(5)
+        # hand made monkey patching
+        self.orig = customers.read_shortlist
+        customers.read_shortlist = lambda: cities
+
+    def tearDown(self) -> None:
+        # monkey un-patching
+        customers.read_shortlist = self.orig
+
+    def test_pick_city_gets_a_correct_city_when_called_with_true(self):
+        result = customers.pick_city(True)
+        expected = {
+            'city_ascii': 'Dreamville',
+            'country': 'Fakeland',
+            'iso2': 'PL'
+        }
+        self.assertDictEqual(result, expected)
+
+    def test_pick_city_gets_correct_city_when_called_with_false(self):
+        result = customers.pick_city(False)
+        expected = {
+            'city_ascii': 'Novelburg',
+            'country': 'Fictionalonia',
+            'iso2': 'SE'
+        }
+        self.assertDictEqual(result, expected)
+
+
+class TestFaker(unittest.TestCase):
     def setUp(self) -> None:
         # hand made monkey patching
         self.orig = customers.read_shortlist
@@ -22,13 +52,19 @@ class TestShortlist(unittest.TestCase):
         # monkey un-patching
         customers.read_shortlist = self.orig
 
-    def test_pick_city_gets_a_city_with_country_from_shortlist(self):
-        city, country = customers.pick_city()
-        self.assertTupleEqual((city, country), ('Faketown', 'Fakeland'))
+    def test_make_customer_produces_name_and_address(self):
+        new_customer = customers.make_customer(cities[3])
+        self.assertEqual('Fictionalonia', new_customer['country'])
+        self.assertEqual('Storyville', new_customer['city'])
+        self.assertIsNotNone(new_customer.get('first_name'))
+        self.assertIsNotNone(new_customer.get('last_name'))
+        self.assertIsNotNone(new_customer.get('address'))
+        print(new_customer)
 
-    def test_pick_city_gets_correct_city_when_called_with_parameter(self):
-        city, country = customers.pick_city(3)
-        self.assertTupleEqual((city, country), ('Storyville', 'Fictionalonia'))
+    def test_make_customer_raises_key_error_when_given_bad_input(self):
+        bad_input = {'iso': 'pl_PL'}
+        with self.assertRaises(KeyError):
+            customers.make_customer(bad_input)
 
 
 class TestRandomToss(unittest.TestCase):
