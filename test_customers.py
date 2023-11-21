@@ -3,12 +3,12 @@ from hypothesis import given, example, strategies as strats
 import customers
 
 cities = [
-    {'country': 'Fakeland', 'city_ascii': 'Faketown', 'iso2': 'PL'},
-    {'country': 'Fakeland', 'city_ascii': 'Imaginaria', 'iso2': 'PL'},
-    {'country': 'Fakeland', 'city_ascii': 'Dreamville', 'iso2': 'PL'},
-    {'country': 'Fictionalonia', 'city_ascii': 'Storyville', 'iso2': 'SE'},
-    {'country': 'Fictionalonia', 'city_ascii': 'Novelburg', 'iso2': 'SE'},
-    {'country': 'Fictionalonia', 'city_ascii': 'Fantasia', 'iso2': 'SE'}
+    {'country': 'Fakeland', 'city': 'Faketown', 'iso2': 'PL'},
+    {'country': 'Fakeland', 'city': 'Imaginaria', 'iso2': 'PL'},
+    {'country': 'Fakeland', 'city': 'Dreamville', 'iso2': 'PL'},
+    {'country': 'Fictionalonia', 'city': 'Storyville', 'iso2': 'SE'},
+    {'country': 'Fictionalonia', 'city': 'Novelburg', 'iso2': 'SE'},
+    {'country': 'Fictionalonia', 'city': 'Fantasia', 'iso2': 'SE'}
 ]
 
 
@@ -26,7 +26,7 @@ class TestShortlist(unittest.TestCase):
     def test_pick_city_gets_a_correct_city_when_called_with_true(self):
         result = customers.pick_city(True)
         expected = {
-            'city_ascii': 'Dreamville',
+            'city': 'Dreamville',
             'country': 'Fakeland',
             'iso2': 'PL'
         }
@@ -35,7 +35,7 @@ class TestShortlist(unittest.TestCase):
     def test_pick_city_gets_correct_city_when_called_with_false(self):
         result = customers.pick_city(False)
         expected = {
-            'city_ascii': 'Novelburg',
+            'city': 'Novelburg',
             'country': 'Fictionalonia',
             'iso2': 'SE'
         }

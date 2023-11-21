@@ -19,7 +19,7 @@ def toss(bias: float = 0.50) -> bool:
 
 def pick_city(prefer_pl: bool) -> dict:
     shortlist = [itm for itm in read_shortlist() if itm['iso2'] == 'PL' or not prefer_pl]
-    keys = 'city_ascii country iso2'.split()
+    keys = 'city country iso2'.split()
     city = {k: v for k, v in choice(shortlist).items() if k in keys}
     return city
 
@@ -40,15 +40,20 @@ def locale_map():
 
 
 def make_customer(city_record: dict) -> dict:
-    faker.Faker.seed(128)
     locale = locale_map().get('iso2', 'pl_PL')
     f = faker.Faker(locale)
+    first_name = f.first_name()
+    last_name = f.last_name()
+    email_first_name = first_name[0] if toss(0.3) else first_name
     return {
-        'first_name': f.first_name(),
-        'last_name': f.last_name(),
+        'first_name': first_name,
+        'last_name': last_name,
         'country': city_record['country'],
-        'city': city_record['city_ascii'],
-        'address': f.street_address()
+        'city': city_record['city'],
+        'address': f.street_address(),
+        'email': f"{email_first_name}.{last_name}@{f.free_email_domain()}",
+        'birth_date': f.date_between('-60y', '-18y'),
+        'postal_code': f.postcode()
     }
 
 

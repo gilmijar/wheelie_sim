@@ -1,9 +1,11 @@
-
+import random
 from sys import argv
 from datetime import date, timedelta
 import random as rnd
 import interaction_with_database as interaction
-import customers
+import customers as customer_gen
+from typing import List, Union, Callable
+from collections import namedtuple
 
 
 def read_arg(limit=365):
@@ -84,12 +86,74 @@ def calculate_multiplier(the_date: date):
 
 def enrich_customer_list(existing: list) -> list:
     existing_size = len(existing)
-    new_ones = [customers.create(0.85) for _ in range(int(existing_size * 0.667))]
-    # we just need their ids,
-    # but we can't get ids, b/c the new ones weren't added to the db yet
-    # but we can't add all of them since
-    # we don't knw which ones will be selected
+    new_ones = [customer_gen.create for _ in range(int(existing_size * 0.667))]
     return existing + new_ones
+
+
+def key_extractor(*targets) -> Callable:
+    """Create a function that can extract target keys and their values from a dict"""
+    def extract(subject: dict) -> dict:
+        return {k: v for k, v in subject.items() if k in targets}
+    return extract
+
+
+def create_customers(customer_mix: List[Union[tuple, Callable]]) -> List[tuple]:
+    the_day = current_date  # copy from outer scope
+    old_ones = [itm for itm in customer_mix if isinstance(itm, tuple)]
+    new_ones = [itm(0.85) for itm in customer_mix if not isinstance(itm, tuple)]
+    countries = list(map(key_extractor('country'), new_ones))
+    interaction.insert_dict(countries, 'country')
+    distinct_countries = ', '.join({f"'{itm['country']}'" for itm in countries})
+    country_map = {r[1]: r[0] for r in interaction.select_data(
+        f"select country_id, country from country where country in ({distinct_countries})"
+    )}
+
+    cities = map(key_extractor('city', 'country'), new_ones)
+    cities_prep = [{'city': d['city'], 'country_id': country_map[d['country']]} for d in cities]
+    interaction.insert_dict(cities_prep, 'city')
+    distinct_cities = ', '.join({f"'{itm['city']}{itm['country_id']}'" for itm in cities_prep})
+    city_map = {(r[1], r[2]): r[0] for r in interaction.select_data(
+        f"select city_id, city, country_id from city where concat(city, country_id) in ({distinct_cities})"
+    )}
+
+    addresses = map(key_extractor('address', 'city', 'country', 'postal_code'), new_ones)
+    addr_prep = [{
+        'address': d['address'],
+        'city_id': city_map[(d['city'], country_map[d['country']])],
+        'postal_code': d['postal_code']
+    } for d in addresses]
+    interaction.insert_dict(addr_prep, 'address')
+    distinct_addr = ', '.join({f"'{itm['address']}{itm['city_id']}'" for itm in addr_prep})
+    address_map = {
+        tuple(r[1:]): r[0] for r in interaction.select_data(
+            f"select address_id, address, city_id from address where concat(address, city_id) in ({distinct_addr})"
+        )
+    }
+
+    people = map(
+        key_extractor('first_name', 'last_name', 'email', 'birth_date', 'address', 'city', 'country'),
+        new_ones
+    )
+    people_prep = [{
+        'first_name': d['first_name'],
+        'last_name': d['last_name'],
+        'email': d['email'],
+        'birth_date': d['birth_date'],
+        'address_id': address_map[(
+            d['address'],
+            city_map[(
+                d['city'],
+                country_map[d['country']]
+            )],
+        )],
+        'create_date': date.isoformat(the_day)
+    } for d in people]
+    interaction.insert_dict(people_prep, 'customer')
+    distinct_people = ', '.join({f"'{itm['first_name']}{itm['last_name']}{itm['address_id']}'" for itm in people_prep})
+    sql = f"select customer_id, first_name, last_name from customer " \
+          f"where concat(first_name, last_name, address_id) in ({distinct_people})"
+    new_people = interaction.select_data(sql)
+    return old_ones + new_people
 
 
 if __name__ == '__main__':
@@ -119,8 +183,8 @@ if __name__ == '__main__':
         print('.', end='')
         rented_cars = rnd.sample(free_cars, k=day_rental_no)
         inventory_ids = [car.inventory_id for car in rented_cars]
-        customer_sample = [itm.customer_id for itm in rnd.sample(customers, k=day_rental_no)]
-        # TODO: create all the new customers in the database and get their ids
+        created_customers = create_customers([itm for itm in rnd.sample(customers, k=day_rental_no)])
+        customer_sample = [itm.customer_id for itm in created_customers]
         rental_prices = [multiplier * rates[car.car_id] for car in rented_cars]
         staff_ids = [itm.staff_id for itm in rnd.choices(staff, k=day_rental_no)]
         rental_dates = [current_date] * day_rental_no
