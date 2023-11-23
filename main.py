@@ -1,3 +1,4 @@
+import datetime
 import random
 from sys import argv
 from datetime import date, timedelta
@@ -34,7 +35,7 @@ def get_customers_on_date(the_date):
 
 def get_latest_date():
     sql = "SELECT MAX(rental_date) FROM rental"
-    latest_date = interaction.select_data(sql, expect_one=True)[0]
+    latest_date = interaction.select_data(sql, expect_one=True)[0] or datetime.date(2016, 1, 2)
     return latest_date
 
 
@@ -84,9 +85,12 @@ def calculate_multiplier(the_date: date):
     return mult
 
 
-def enrich_customer_list(existing: list) -> list:
+def enrich_customer_list(existing: list, min_cnt: int) -> list:
     existing_size = len(existing)
-    new_ones = [customer_gen.create for _ in range(int(existing_size * 0.667))]
+    target_cnt = int(existing_size * 0.667)
+    if (existing_size + target_cnt) < min_cnt:
+        target_cnt = min_cnt
+    new_ones = [customer_gen.create for _ in range(target_cnt)]
     return existing + new_ones
 
 
@@ -206,7 +210,7 @@ if __name__ == '__main__':
             print(f'No cars to rent on {current_date}')
             continue
         multiplier = calculate_multiplier(current_date)
-        customers = enrich_customer_list(get_customers_on_date(current_date))
+        customers = enrich_customer_list(get_customers_on_date(current_date), min_cnt=day_rental_no)
         print('.', end='')
         rented_cars = rnd.sample(free_cars, k=day_rental_no)
         inventory_ids = [car.inventory_id for car in rented_cars]
