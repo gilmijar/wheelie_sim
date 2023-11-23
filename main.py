@@ -156,6 +156,33 @@ def create_customers(customer_mix: List[Union[tuple, Callable]]) -> List[tuple]:
     return old_ones + new_people
 
 
+def fill_in_payments():
+    sql = [
+        "DROP TEMPORARY TABLE IF EXISTS unpaid_rentals",
+        """
+        CREATE TEMPORARY TABLE unpaid_rentals
+        SELECT
+        rental.customer_id,
+        rental_id, 
+        (return_date - rental_date)* rental_rate as amount,
+        date_add(payment_deadline, INTERVAL floor(rand()*20) DAY) as payment_date
+        FROM rental
+        LEFT JOIN payment
+        USING (rental_id)
+        WHERE payment_id is null
+        AND rental.return_date is not null;
+        """,
+        """
+        INSERT IGNORE payment (
+            customer_id, rental_id, amount, payment_date
+        )
+        SELECT * FROM unpaid_rentals LIMIT 1000000;
+        """
+    ]
+    for query in sql:
+        interaction.run_dml(query)
+
+
 if __name__ == '__main__':
     GENERATE_DAYS = read_arg() or 1
     DAILY_RENTALS = 80
@@ -214,3 +241,5 @@ if __name__ == '__main__':
               f'Rent {day_rental_no} cars, leaving {remaining_free} free cars. '
               f'{weekend * weekend_factor}')
         interaction.insert_dict(insert_list, 'rental')
+        # now fill in missing payments
+        fill_in_payments()
