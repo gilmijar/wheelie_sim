@@ -60,6 +60,7 @@ def get_staff(the_date):
 
 
 def promote_employee():
+    the_date = current_date  # copy from outer scope
     chosen_one = rnd.randint(1, 52)
     sql = f"""UPDATE store
         JOIN (select staff_id, store_id FROM staff
@@ -67,7 +68,7 @@ def promote_employee():
         LIMIT {chosen_one},1) AS choice
         USING(store_id)
         SET store_manager_id = choice.staff_id,
-        last_update = NOW()"""
+        last_update = '{date.isoformat(the_date)}'"""
     interaction.run_dml(sql)
 
 
@@ -124,7 +125,8 @@ def create_customers(customer_mix: List[Union[tuple, Callable]]) -> List[tuple]:
     addr_prep = [{
         'address': d['address'],
         'city_id': city_map[(d['city'], country_map[d['country']])],
-        'postal_code': d['postal_code']
+        'postal_code': d['postal_code'],
+        'last_update': date.isoformat(the_day)
     } for d in addresses]
     interaction.insert_dict(addr_prep, 'address')
     distinct_addr = ', '.join({f"'{itm['address']}{itm['city_id']}'" for itm in addr_prep})
@@ -194,9 +196,9 @@ if __name__ == '__main__':
     rates = get_rental_rates()
     last_rental_date: date = get_latest_date()
     for day in range(1, GENERATE_DAYS + 1):
-        promote_employee()
         print('.', end='')
         current_date = last_rental_date + timedelta(days=day)
+        promote_employee()
         weekend_factor = int(is_weekend(current_date))
         free_cars = get_free_cars_on_date(current_date)
         staff = get_staff(current_date)

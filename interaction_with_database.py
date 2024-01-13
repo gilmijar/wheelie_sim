@@ -40,7 +40,6 @@ def insert_dict(what, where, batch_size=500):
         cursor.execute(sql, values[0])
         db.commit()
     batches = [values[i:i+batch_size] for i in range(0, len(values), batch_size)]
-    calculated_ids = []
     for i, batch in enumerate(batches):
         # print(f'\tRunning batch {i+1} of {len(batches)}, with {len(batch)} rows')
         cursor.executemany(sql, batch)
