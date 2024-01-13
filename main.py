@@ -163,15 +163,17 @@ def create_customers(customer_mix: List[Union[tuple, Callable]]) -> List[tuple]:
 
 
 def fill_in_payments():
+    the_date = current_date  # copy from outer scope
     sql = [
         "DROP TEMPORARY TABLE IF EXISTS unpaid_rentals",
-        """
+        f"""
         CREATE TEMPORARY TABLE unpaid_rentals
         SELECT
         rental.customer_id,
         rental_id, 
         (return_date - rental_date)* rental_rate as amount,
-        date_add(payment_deadline, INTERVAL floor(rand()*20) DAY) as payment_date
+        date_add(payment_deadline, INTERVAL floor(rand()*20) DAY) as payment_date,
+        '{date.isoformat(the_date)}' as last_update
         FROM rental
         LEFT JOIN payment
         USING (rental_id)
@@ -180,7 +182,7 @@ def fill_in_payments():
         """,
         """
         INSERT IGNORE payment (
-            customer_id, rental_id, amount, payment_date
+            customer_id, rental_id, amount, payment_date, last_update
         )
         SELECT * FROM unpaid_rentals LIMIT 1000000;
         """
