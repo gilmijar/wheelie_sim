@@ -1,5 +1,6 @@
 import mariadb as msc
 from functools import lru_cache
+from collections import namedtuple, Sequence
 import config
 
 
@@ -18,9 +19,20 @@ def connection():
 def select_data(query, expect_one=False):
     db, cursor = connection()
     cursor.execute(query)
-    if expect_one:
-        return cursor.fetchone()
-    return cursor.fetchall()
+    data = cursor.fetchone() if expect_one else cursor.fetchall()
+    columns = [col[0] for col in cursor.description]
+    return result_as_named_tuples(columns, data)
+
+
+def result_as_named_tuples(cols, data, class_name='Result'):
+    if not cols:
+        raise ValueError('No column names provided')
+    tuple_named = namedtuple(class_name, cols, rename=True)
+    if not all(map(lambda x: isinstance(x, Sequence), data)):
+        rows = tuple_named(*data)
+    else:
+        rows = [tuple_named(*row) for row in data]
+    return rows
 
 
 def run_dml(sql):
