@@ -104,7 +104,7 @@ def filter_dict(*desired_keys) -> Callable:
 def create_customers(customer_mix: List[Union[tuple, Callable]]) -> List[tuple]:
     the_day = current_date  # copy from outer scope
     old_ones = [itm for itm in customer_mix if isinstance(itm, tuple)]
-    new_ones = [itm(0.85) for itm in customer_mix if not isinstance(itm, tuple)]
+    new_ones = [itm(the_day, 0.85) for itm in customer_mix if not isinstance(itm, tuple)]
     countries = list(map(filter_dict('country'), new_ones))
     interaction.insert_dict(countries, 'country')
     distinct_countries = ', '.join({f"'{itm['country']}'" for itm in countries})

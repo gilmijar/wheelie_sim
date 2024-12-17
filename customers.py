@@ -11,6 +11,7 @@ from functools import lru_cache
 from random import choice, random, seed, gauss
 import faker
 from typing import List, Tuple
+from datetime import date, timedelta
 
 
 def age_normal_dist(mean=40, sigma=12, lo=20, hi=80):
@@ -49,13 +50,28 @@ def locale_map():
     return loc_map
 
 
-def make_customer(city_record: dict) -> dict:
+def make_birthday(from_date, year_shift):
+    if isinstance(from_date, str):
+        yr = date.fromisoformat(from_date).year + year_shift
+    elif isinstance(from_date, date):
+        yr = from_date.year + year_shift
+    elif isinstance(from_date, int):
+        yr = from_date + year_shift
+    else:
+        raise ValueError('from_date must be iso ormat string, date object ot year as integer')
+    day_offset = timedelta(days=int(random()*365))
+    birthday = date(yr, 1, 1) + day_offset
+    return birthday
+
+
+def make_customer(city_record: dict, the_day: date) -> dict:
     locale = locale_map().get('iso2', 'pl_PL')
     f = faker.Faker(locale)
     first_name = f.first_name()
     last_name = f.last_name()
     email_first_name = first_name[0] if toss(0.3) else first_name
     age = age_normal_dist(mean=40, sigma=12, lo=20, hi=70)
+    birthday = make_birthday(the_day, -1*age)
     return {
         'first_name': first_name,
         'last_name': last_name,
@@ -63,13 +79,13 @@ def make_customer(city_record: dict) -> dict:
         'city': city_record['city'],
         'address': f.street_address(),
         'email': f"{email_first_name}.{last_name}@{f.free_email_domain()}",
-        'birth_date': f.date_between(f'-{age+1}y', f'-{age-1}y'),
+        'birth_date': birthday,
         'postal_code': f.postcode()
     }
 
 
-def create(bias: float) -> dict:
-    return make_customer(pick_city(toss(bias)))
+def create(the_day, bias: float) -> dict:
+    return make_customer(pick_city(toss(bias)), the_day)
 
 
 if __name__ == '__main__':

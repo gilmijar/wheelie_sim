@@ -1,4 +1,5 @@
 import unittest
+from datetime import date
 from hypothesis import given, example, strategies as strats
 import customers
 
@@ -10,6 +11,20 @@ cities = [
     {'country': 'Fictionalonia', 'city': 'Novelburg', 'iso2': 'SE'},
     {'country': 'Fictionalonia', 'city': 'Fantasia', 'iso2': 'SE'}
 ]
+
+
+class TestBirthday(unittest.TestCase):
+    def setUp(self) -> None:
+        customers.seed(5)
+        self.expected = date(2015, 8, 16)
+
+    def test_make_birthday_recognizes_isodate(self):
+        actual = customers.make_birthday('2020-10-28', -5)
+        self.assertEqual(self.expected, actual)
+
+    def test_make_birthday_recognizes_date(self):
+        actual = customers.make_birthday(date(2020, 10, 28), -5)
+        self.assertEqual(self.expected, actual)
 
 
 class TestShortlist(unittest.TestCase):
