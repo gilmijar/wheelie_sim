@@ -16,7 +16,7 @@ from typing import List, Tuple
 def age_normal_dist(mean=40, sigma=12, lo=20, hi=80):
     """ random result between lo and hi, with normal-ish distribution"""
     if lo >= hi:
-        raise ValueError(f'lower cutoff age should be lower than hight cutoff age. Currently {lo=}, {hi=}')
+        raise ValueError(f'lower cutoff age should be lower than hight cutoff age. Currently {lo}, {hi}')
     x = lo - 1
     while not (lo <= x <= hi):
         x = gauss(mean, sigma)

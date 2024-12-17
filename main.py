@@ -161,8 +161,7 @@ def create_customers(customer_mix: List[Union[tuple, Callable]]) -> List[tuple]:
     return old_ones + new_people
 
 
-def fill_in_payments():
-    the_date = current_date  # copy from outer scope
+def fill_in_payments(the_date):
     sql = [
         "DROP TEMPORARY TABLE IF EXISTS unpaid_rentals",
         f"""
@@ -171,14 +170,18 @@ def fill_in_payments():
         rental.customer_id,
         rental_id, 
         datediff(return_date, rental_date) * rental_rate as amount,
-        date_add('{date.isoformat(the_date)}', INTERVAL floor(rand()*-4) DAY) as payment_date,
-        '{date.isoformat(the_date)}' as last_update
+        -- pay approx half on time and other half up to 10 days late
+        date_add(rental.payment_deadline, INTERVAL greatest(0, floor(rand()*20)-10) DAY) as payment_date,
+        -- pretend we added payment on some other day. at least 10 days after due date, 
+        -- this should prevent overlap with payment dates
+        date_add(rental.payment_deadline, INTERVAL greatest(0, floor(rand()*10)+10) DAY) as last_update
         FROM rental
         LEFT JOIN payment
         USING (rental_id)
         WHERE payment_id is null
         AND rental.return_date is not null
-        AND payment_deadline < date_add('{date.isoformat(the_date)}', INTERVAL -1*floor(rand()*-20) DAY);
+        -- pay for rentals due no later than 10 days ago at least
+        AND payment_deadline < date_add('{date.isoformat(the_date)}', INTERVAL floor(rand()*-10)-10 DAY);
         """,
         """
         INSERT IGNORE payment (
@@ -257,4 +260,4 @@ if __name__ == '__main__':
               f'{weekend * weekend_factor}')
         interaction.insert_dict(insert_list, 'rental')
         # now fill in missing payments
-        fill_in_payments()
+        fill_in_payments(current_date)
