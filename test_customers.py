@@ -66,6 +66,17 @@ class TestFaker(unittest.TestCase):
         with self.assertRaises(KeyError):
             customers.make_customer(bad_input)
 
+    def test_customers_get_a_normal_like_distribution_of_age(self):
+        from collections import Counter
+        b_years = [customers.make_customer(cities[3])['birth_date'].year for _ in range(300)]
+        year_counts = Counter(b_years)
+        ordered_counts = [n for y, n in sorted(year_counts.items())]
+        third = len(ordered_counts)//3
+        old = sum(ordered_counts[:third]) / third
+        mid = sum(ordered_counts[third:third*2]) / third
+        new = sum(ordered_counts[third*2:]) / third
+        self.assertTrue(old < mid and new < mid, f'{old=}, {mid=}, {new=}')
+
 
 class TestRandomToss(unittest.TestCase):
     def setUp(self) -> None:

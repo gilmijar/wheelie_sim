@@ -1,12 +1,11 @@
 import datetime
-import random
+import random as rnd
 from sys import argv
 from datetime import date, timedelta
-import random as rnd
 import interaction_with_database as interaction
 import customers as customer_gen
 from typing import List, Union, Callable
-from collections import namedtuple
+from collections import namedtuple, defaultdict
 
 
 def read_arg(limit=365):
@@ -35,12 +34,12 @@ def get_customers_on_date(the_date):
 
 def get_latest_date():
     sql = "SELECT MAX(rental_date) FROM rental"
-    latest_date = interaction.select_data(sql, expect_one=True)[0] or datetime.date(2016, 1, 2)
+    latest_date = interaction.select_data(sql, expect_one=True)[0] or datetime.date(2017, 1, 2)
     return latest_date
 
 
 def get_free_cars_on_date(the_date):
-    sql = f"""SELECT inventory_id, car_id
+    sql = f"""SELECT inventory_id, car_id, store_id
                 FROM inventory inv
                 WHERE create_date < '{the_date}'
                 AND (sell_price is null OR last_update > '{the_date}')
@@ -55,7 +54,7 @@ def get_free_cars_on_date(the_date):
 
 
 def get_staff(the_date):
-    sql = f"SELECT staff_id, hired_date FROM staff WHERE hired_date < '{the_date}'"
+    sql = f"SELECT staff_id, store_id, hired_date FROM staff WHERE hired_date < '{the_date}'"
     return interaction.select_data(sql)
 
 
@@ -95,10 +94,10 @@ def enrich_customer_list(existing: list, min_cnt: int) -> list:
     return existing + new_ones
 
 
-def key_extractor(*targets) -> Callable:
+def filter_dict(*desired_keys) -> Callable:
     """Create a function that can extract target keys and their values from a dict"""
     def extract(subject: dict) -> dict:
-        return {k: v for k, v in subject.items() if k in targets}
+        return {k: v for k, v in subject.items() if k in desired_keys}
     return extract
 
 
@@ -106,14 +105,14 @@ def create_customers(customer_mix: List[Union[tuple, Callable]]) -> List[tuple]:
     the_day = current_date  # copy from outer scope
     old_ones = [itm for itm in customer_mix if isinstance(itm, tuple)]
     new_ones = [itm(0.85) for itm in customer_mix if not isinstance(itm, tuple)]
-    countries = list(map(key_extractor('country'), new_ones))
+    countries = list(map(filter_dict('country'), new_ones))
     interaction.insert_dict(countries, 'country')
     distinct_countries = ', '.join({f"'{itm['country']}'" for itm in countries})
     country_map = {r[1]: r[0] for r in interaction.select_data(
         f"select country_id, country from country where country in ({distinct_countries})"
     )}
 
-    cities = map(key_extractor('city', 'country'), new_ones)
+    cities = map(filter_dict('city', 'country'), new_ones)
     cities_prep = [{'city': d['city'], 'country_id': country_map[d['country']]} for d in cities]
     interaction.insert_dict(cities_prep, 'city')
     distinct_cities = ', '.join({f"'{itm['city']}{itm['country_id']}'" for itm in cities_prep})
@@ -121,7 +120,7 @@ def create_customers(customer_mix: List[Union[tuple, Callable]]) -> List[tuple]:
         f"select city_id, city, country_id from city where concat(city, country_id) in ({distinct_cities})"
     )}
 
-    addresses = map(key_extractor('address', 'city', 'country', 'postal_code'), new_ones)
+    addresses = map(filter_dict('address', 'city', 'country', 'postal_code'), new_ones)
     addr_prep = [{
         'address': d['address'],
         'city_id': city_map[(d['city'], country_map[d['country']])],
@@ -137,7 +136,7 @@ def create_customers(customer_mix: List[Union[tuple, Callable]]) -> List[tuple]:
     }
 
     people = map(
-        key_extractor('first_name', 'last_name', 'email', 'birth_date', 'address', 'city', 'country'),
+        filter_dict('first_name', 'last_name', 'email', 'birth_date', 'address', 'city', 'country'),
         new_ones
     )
     people_prep = [{
@@ -171,14 +170,15 @@ def fill_in_payments():
         SELECT
         rental.customer_id,
         rental_id, 
-        (return_date - rental_date)* rental_rate as amount,
-        date_add(payment_deadline, INTERVAL floor(rand()*20) DAY) as payment_date,
+        datediff(return_date, rental_date) * rental_rate as amount,
+        date_add('{date.isoformat(the_date)}', INTERVAL floor(rand()*-4) DAY) as payment_date,
         '{date.isoformat(the_date)}' as last_update
         FROM rental
         LEFT JOIN payment
         USING (rental_id)
         WHERE payment_id is null
-        AND rental.return_date is not null;
+        AND rental.return_date is not null
+        AND payment_deadline < date_add('{date.isoformat(the_date)}', INTERVAL -1*floor(rand()*-20) DAY);
         """,
         """
         INSERT IGNORE payment (
@@ -192,7 +192,8 @@ def fill_in_payments():
 
 
 if __name__ == '__main__':
-    GENERATE_DAYS = read_arg() or 1
+    # rnd.seed = 6  # guaranteed to be random
+    GENERATE_DAYS = read_arg(limit=3653) or 1
     DAILY_RENTALS = 80
     RENTAL_SPREAD = 20
     rates = get_rental_rates()
@@ -204,6 +205,12 @@ if __name__ == '__main__':
         weekend_factor = int(is_weekend(current_date))
         free_cars = get_free_cars_on_date(current_date)
         staff = get_staff(current_date)
+        if not staff:
+            print('No staff on this day')
+            continue
+        staff_by_store = defaultdict(list)
+        for row in staff:
+            staff_by_store[row.store_id].append(row.staff_id)
         adjusted_rentals = rnd.randint(DAILY_RENTALS - RENTAL_SPREAD, DAILY_RENTALS + RENTAL_SPREAD)
         increase_factor = 1 + 0.5 * weekend_factor
         day_rental_no = min(
@@ -221,7 +228,7 @@ if __name__ == '__main__':
         created_customers = create_customers([itm for itm in rnd.sample(customers, k=day_rental_no)])
         customer_sample = [itm.customer_id for itm in created_customers]
         rental_prices = [multiplier * rates[car.car_id] for car in rented_cars]
-        staff_ids = [itm.staff_id for itm in rnd.choices(staff, k=day_rental_no)]
+        staff_ids = [rnd.choice(staff_by_store[car.store_id]) for car in rented_cars if staff_by_store[car.store_id]]
         rental_dates = [current_date] * day_rental_no
         return_dates = [current_date + timedelta(days=rnd.randint(2-weekend_factor, 12-4*weekend_factor))
                         for _ in rented_cars]

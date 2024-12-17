@@ -8,9 +8,19 @@ Cities are taken from https://simplemaps.com/data/world-cities - basic dataset
 
 import json
 from functools import lru_cache
-from random import choice, random, seed
+from random import choice, random, seed, gauss
 import faker
 from typing import List, Tuple
+
+
+def age_normal_dist(mean=40, sigma=12, lo=20, hi=80):
+    """ random result between lo and hi, with normal-ish distribution"""
+    if lo >= hi:
+        raise ValueError(f'lower cutoff age should be lower than hight cutoff age. Currently {lo=}, {hi=}')
+    x = lo - 1
+    while not (lo <= x <= hi):
+        x = gauss(mean, sigma)
+    return int(round(x, 0))
 
 
 def toss(bias: float = 0.50) -> bool:
@@ -45,6 +55,7 @@ def make_customer(city_record: dict) -> dict:
     first_name = f.first_name()
     last_name = f.last_name()
     email_first_name = first_name[0] if toss(0.3) else first_name
+    age = age_normal_dist(mean=40, sigma=12, lo=20, hi=70)
     return {
         'first_name': first_name,
         'last_name': last_name,
@@ -52,7 +63,7 @@ def make_customer(city_record: dict) -> dict:
         'city': city_record['city'],
         'address': f.street_address(),
         'email': f"{email_first_name}.{last_name}@{f.free_email_domain()}",
-        'birth_date': f.date_between('-60y', '-18y'),
+        'birth_date': f.date_between(f'-{age+1}y', f'-{age-1}y'),
         'postal_code': f.postcode()
     }
 
