@@ -33,7 +33,7 @@ CREATE TABLE `address` (
   UNIQUE KEY `address_address_IDX` (`address`,`city_id`,`postal_code`) USING BTREE,
   KEY `address_FK` (`city_id`),
   CONSTRAINT `address_FK` FOREIGN KEY (`city_id`) REFERENCES `city` (`city_id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=506879 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -51,7 +51,7 @@ CREATE TABLE `car` (
   `create_date` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `last_update` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`car_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=13 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -69,7 +69,7 @@ CREATE TABLE `city` (
   UNIQUE KEY `city_unique` (`city`,`country_id`),
   KEY `city_FK` (`country_id`),
   CONSTRAINT `city_FK` FOREIGN KEY (`country_id`) REFERENCES `country` (`country_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=386047 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -84,7 +84,7 @@ CREATE TABLE `country` (
   `country` varchar(50) DEFAULT NULL,
   PRIMARY KEY (`country_id`),
   UNIQUE KEY `country_country_IDX` (`country`) USING BTREE
-) ENGINE=InnoDB AUTO_INCREMENT=372008 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -107,7 +107,7 @@ CREATE TABLE `customer` (
   UNIQUE KEY `customer_first_name_IDX` (`first_name`,`last_name`,`address_id`) USING BTREE,
   KEY `customer_FK` (`address_id`),
   CONSTRAINT `customer_FK` FOREIGN KEY (`address_id`) REFERENCES `address` (`address_id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=506776 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -125,7 +125,7 @@ CREATE TABLE `equipment` (
   `create_date` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `last_update` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`equipment_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=26 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -151,7 +151,7 @@ CREATE TABLE `inventory` (
   KEY `inventory_FK_1` (`store_id`),
   CONSTRAINT `inventory_FK` FOREIGN KEY (`car_id`) REFERENCES `car` (`car_id`),
   CONSTRAINT `inventory_FK_1` FOREIGN KEY (`store_id`) REFERENCES `store` (`store_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1195 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -170,7 +170,7 @@ CREATE TABLE `inventory_equipment` (
   KEY `inventory_equipment_FK_1` (`equipment_id`),
   CONSTRAINT `inventory_equipment_FK` FOREIGN KEY (`inventory_id`) REFERENCES `inventory` (`inventory_id`),
   CONSTRAINT `inventory_equipment_FK_1` FOREIGN KEY (`equipment_id`) REFERENCES `equipment` (`equipment_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=13124 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -190,7 +190,7 @@ CREATE TABLE `payment` (
   PRIMARY KEY (`payment_id`),
   KEY `payment_FK` (`rental_id`),
   KEY `payment_FK_1` (`customer_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=1538878 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -218,7 +218,7 @@ CREATE TABLE `rental` (
   CONSTRAINT `rental_FK` FOREIGN KEY (`customer_id`) REFERENCES `customer` (`customer_id`) ON DELETE CASCADE,
   CONSTRAINT `rental_FK_1` FOREIGN KEY (`inventory_id`) REFERENCES `inventory` (`inventory_id`),
   CONSTRAINT `rental_FK_2` FOREIGN KEY (`staff_id`) REFERENCES `staff` (`staff_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2782062 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -253,7 +253,7 @@ CREATE TABLE `service` (
   PRIMARY KEY (`service_id`),
   UNIQUE KEY `service_inventory_id_IDX` (`inventory_id`,`service_type`,`service_date`) USING BTREE,
   CONSTRAINT `service_FK` FOREIGN KEY (`inventory_id`) REFERENCES `inventory` (`inventory_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=35564 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -279,7 +279,7 @@ CREATE TABLE `staff` (
   KEY `staff_FK_2` (`address_id`),
   CONSTRAINT `staff_FK` FOREIGN KEY (`store_id`) REFERENCES `store` (`store_id`),
   CONSTRAINT `staff_FK_2` FOREIGN KEY (`address_id`) REFERENCES `address` (`address_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=53 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -299,7 +299,7 @@ CREATE TABLE `store` (
   KEY `store_FK_1` (`store_manager_id`),
   CONSTRAINT `store_FK` FOREIGN KEY (`address_id`) REFERENCES `address` (`address_id`),
   CONSTRAINT `store_FK_1` FOREIGN KEY (`store_manager_id`) REFERENCES `staff` (`staff_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=16 DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
