@@ -54,5 +54,15 @@ def insert_dict(what, where, batch_size=500):
     batches = [values[i:i+batch_size] for i in range(0, len(values), batch_size)]
     for i, batch in enumerate(batches):
         # print(f'\tRunning batch {i+1} of {len(batches)}, with {len(batch)} rows')
-        cursor.executemany(sql, batch)
-        db.commit()
+        #cursor.executemany(sql, batch)  <- slow, due to buggy driver implementation
+        cursor.execute(bulkify(sql, batch))
+    db.commit()
+
+
+def bulkify(sql, data):
+    query, *_ = sql.split('VALUES')
+    data_rows = []
+    for r in data:
+        data_rows.append('(' + ','.join([str(x) if isinstance(x, int) else f"'{x}'" for x in r]) + ')')
+    return (query + ' VALUES\n' + ',\n'.join(data_rows)).replace('  ', ' ')
+    
