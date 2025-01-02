@@ -1,6 +1,10 @@
 import mariadb as msc
 from functools import lru_cache
-from collections import namedtuple, Sequence
+from collections import namedtuple
+try:
+    from collections.abc import Sequence
+except Exception:
+    from collections import Sequence
 import config
 
 
